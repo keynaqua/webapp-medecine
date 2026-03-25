@@ -1,1 +1,0 @@
-# Projet de formattage de QCM pour médecine de Bordeaux
