@@ -215,8 +215,8 @@ async def parse_pdf(request: Request, pdf: UploadFile = File(...)):
 
         for q in questions_meta:
             parsed = parse_question_content(q["content"], q["number"])
-			if parsed:
-				all_qcms.append(parsed)
+            if parsed:
+                all_qcms.append(parsed)
             all_questions_meta.append(q)
 
         page_images = extract_images_with_positions(doc, page, page_index, base_url)
