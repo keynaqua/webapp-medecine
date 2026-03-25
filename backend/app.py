@@ -116,6 +116,9 @@ def parse_qcm_block(number, raw_content):
 
     question_text = normalize_spaces(" ".join(question_lines))
 
+	if "qcm non reporté" in question_text.lower():
+        return None
+
     return {
         "number": int(number),
         "question": question_text,
