@@ -3,16 +3,17 @@ import re
 import uuid
 import fitz  # PyMuPDF
 
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
-# Autoriser le front local
+FRONTEND_URL = os.getenv("FRONTEND_URL", "*")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"] if FRONTEND_URL == "*" else [FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -29,11 +30,7 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 QUESTION_RE = re.compile(r"QCM\s+(\d+)\s*:")
 
-
 def extract_text_blocks(page):
-    """
-    Retourne les blocs texte utiles de la page avec leur bbox.
-    """
     data = page.get_text("dict")
     blocks = []
 
@@ -55,16 +52,12 @@ def extract_text_blocks(page):
 
         blocks.append({
             "text": text,
-            "bbox": block["bbox"]  # [x0, y0, x1, y1]
+            "bbox": block["bbox"]
         })
 
     return blocks
 
-
 def extract_questions_from_blocks(blocks, page_number):
-    """
-    Détecte les débuts de QCM dans les blocs texte.
-    """
     questions = []
 
     for block in blocks:
@@ -77,27 +70,19 @@ def extract_questions_from_blocks(blocks, page_number):
                 "page": page_number,
                 "bbox": block["bbox"],
                 "raw_text": text,
-                "content": ""  # sera rempli ensuite
+                "content": ""
             })
 
-    questions.sort(key=lambda q: q["bbox"][1])  # tri vertical
+    questions.sort(key=lambda q: q["bbox"][1])
     return questions
 
-
 def collect_question_content(blocks, questions):
-    """
-    Pour chaque question, récupère le texte situé entre elle et la suivante.
-    """
     if not questions:
         return []
 
     for i, question in enumerate(questions):
         current_y = question["bbox"][1]
-
-        if i + 1 < len(questions):
-            next_y = questions[i + 1]["bbox"][1]
-        else:
-            next_y = float("inf")
+        next_y = questions[i + 1]["bbox"][1] if i + 1 < len(questions) else float("inf")
 
         content_parts = []
 
@@ -110,14 +95,7 @@ def collect_question_content(blocks, questions):
 
     return questions
 
-
 def parse_question_content(content, number):
-    """
-    Transforme le texte complet d'un QCM en:
-    - question
-    - réponses
-    """
-    # retirer l'en-tête "QCM X :"
     content = re.sub(rf"QCM\s+{number}\s*:\s*", "", content, count=1).strip()
 
     parts = re.split(r"(?=[A-E]\.)", content)
@@ -139,15 +117,11 @@ def parse_question_content(content, number):
         "images": []
     }
 
-
-def extract_images_with_positions(doc, page, page_index):
-    """
-    Extrait les images embarquées visibles sur la page, avec bbox.
-    """
+def extract_images_with_positions(doc, page, page_index, base_url):
     images = []
     image_infos = page.get_image_info(xrefs=True)
 
-    for idx, info in enumerate(image_infos):
+    for info in image_infos:
         xref = info.get("xref")
         bbox = info.get("bbox")
 
@@ -165,7 +139,6 @@ def extract_images_with_positions(doc, page, page_index):
         width = base_image.get("width", 0)
         height = base_image.get("height", 0)
 
-        # filtre simple pour éviter les mini-images techniques
         if width < 40 or height < 40:
             continue
 
@@ -177,20 +150,13 @@ def extract_images_with_positions(doc, page, page_index):
 
         images.append({
             "page": page_index + 1,
-            "bbox": bbox,  # [x0, y0, x1, y1]
-            "url": f"http://localhost:8000/uploads/{filename}"
+            "bbox": bbox,
+            "url": f"{base_url}/uploads/{filename}"
         })
 
     return images
 
-
 def attach_images_to_questions(qcms, questions_meta, images):
-    """
-    Associe chaque image à la question la plus proche sur la même page.
-    Règle simple:
-    - même page
-    - on prend la dernière question située au-dessus de l'image
-    """
     qcm_map = {q["number"]: q for q in qcms}
     questions_by_page = {}
 
@@ -213,14 +179,19 @@ def attach_images_to_questions(qcms, questions_meta, images):
 
     return qcms
 
+@app.get("/")
+async def root():
+    return {"message": "API QCM en ligne"}
 
 @app.post("/api/parse-pdf")
-async def parse_pdf(pdf: UploadFile = File(...)):
+async def parse_pdf(request: Request, pdf: UploadFile = File(...)):
     tmp_filename = f"{uuid.uuid4().hex}_{pdf.filename}"
     tmp_path = os.path.join(TMP_DIR, tmp_filename)
 
     with open(tmp_path, "wb") as f:
         f.write(await pdf.read())
+
+    base_url = str(request.base_url).rstrip("/")
 
     doc = fitz.open(tmp_path)
 
@@ -241,16 +212,17 @@ async def parse_pdf(pdf: UploadFile = File(...)):
             all_qcms.append(parsed)
             all_questions_meta.append(q)
 
-        page_images = extract_images_with_positions(doc, page, page_index)
+        page_images = extract_images_with_positions(doc, page, page_index, base_url)
         all_images.extend(page_images)
 
     doc.close()
 
-    all_qcms = attach_images_to_questions(all_qcms, all_questions_meta, all_images)
+    try:
+        os.remove(tmp_path)
+    except OSError:
+        pass
 
-    # tri final par numéro de QCM
+    all_qcms = attach_images_to_questions(all_qcms, all_questions_meta, all_images)
     all_qcms.sort(key=lambda q: q["number"])
 
-    return {
-        "qcms": all_qcms
-    }
+    return {"qcms": all_qcms}
