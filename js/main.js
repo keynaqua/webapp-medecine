@@ -22,11 +22,14 @@ async function handleFile(event) {
       body: formData
     });
 
+    const text = await response.text();
+
     if (!response.ok) {
-      throw new Error("Erreur lors du parsing");
+      console.error("Réponse backend :", text);
+      throw new Error(`Erreur HTTP ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = JSON.parse(text);
 
     displayQCMs(data.qcms);
     status.textContent = "PDF parsé avec succès.";
