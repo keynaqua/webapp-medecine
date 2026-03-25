@@ -3,7 +3,7 @@ import { displayQCMs } from "./ui/renderer.js";
 const input = document.getElementById("pdfInput");
 const status = document.getElementById("status");
 
-const API_URL = "https://ton-backend.onrender.com/api/parse-pdf";
+const API_URL = "https://webapp-medecine.onrender.com/api/parse-pdf";
 
 input.addEventListener("change", handleFile);
 
