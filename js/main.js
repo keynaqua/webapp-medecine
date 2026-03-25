@@ -3,6 +3,8 @@ import { displayQCMs } from "./ui/renderer.js";
 const input = document.getElementById("pdfInput");
 const status = document.getElementById("status");
 
+const API_URL = "https://ton-backend.onrender.com/api/parse-pdf";
+
 input.addEventListener("change", handleFile);
 
 async function handleFile(event) {
@@ -15,7 +17,7 @@ async function handleFile(event) {
   formData.append("pdf", file);
 
   try {
-    const response = await fetch("http://127.0.0.1:8000/api/parse-pdf", {
+    const response = await fetch(API_URL, {
       method: "POST",
       body: formData
     });
