@@ -96,7 +96,13 @@ def collect_question_content(blocks, questions):
     return questions
 
 def parse_question_content(content, number):
-    content = re.sub(rf"QCM\s+{number}\s*:\s*", "", content, count=1).strip()
+    # On garde uniquement ce qui vient APRES "QCM X:"
+    match = re.search(rf"QCM\s+{number}\s*:\s*(.*)", content, re.DOTALL)
+    
+    if match:
+        content = match.group(1).strip()
+    else:
+        return None  # sécurité si mauvais parsing
 
     parts = re.split(r"(?=[A-E]\.)", content)
     question_text = parts[0].strip() if parts else ""
@@ -209,7 +215,8 @@ async def parse_pdf(request: Request, pdf: UploadFile = File(...)):
 
         for q in questions_meta:
             parsed = parse_question_content(q["content"], q["number"])
-            all_qcms.append(parsed)
+			if parsed:
+				all_qcms.append(parsed)
             all_questions_meta.append(q)
 
         page_images = extract_images_with_positions(doc, page, page_index, base_url)
