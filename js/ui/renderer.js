@@ -6,15 +6,7 @@ export function displayCurrentQCM(qcms, currentIndex, onValidate) {
   if (!qcms || currentIndex >= qcms.length) {
     const endMessage = document.createElement("div");
     endMessage.className = "qcm";
-
-    const title = document.createElement("h2");
-    title.textContent = "Terminé";
-    endMessage.appendChild(title);
-
-    const text = document.createElement("p");
-    text.textContent = "Tu as terminé toutes les questions.";
-    endMessage.appendChild(text);
-
+    endMessage.innerHTML = "<h2>Terminé</h2><p>Tu as terminé toutes les questions.</p>";
     output.appendChild(endMessage);
     return;
   }
@@ -33,26 +25,15 @@ export function displayCurrentQCM(qcms, currentIndex, onValidate) {
   question.textContent = qcm.question;
   qcmDiv.appendChild(question);
 
-  const answersDiv = document.createElement("div");
-  answersDiv.className = "answers";
+  const hasSubitems =
+    Array.isArray(qcm.subitems) &&
+    qcm.subitems.length > 0;
 
-  qcm.answers.forEach((answer) => {
-    const label = document.createElement("label");
-    label.className = "answer-item";
-
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.value = answer.letter;
-
-    const text = document.createElement("span");
-    text.textContent = `${answer.letter}. ${answer.text}`;
-
-    label.appendChild(checkbox);
-    label.appendChild(text);
-    answersDiv.appendChild(label);
-  });
-
-  qcmDiv.appendChild(answersDiv);
+  if (hasSubitems) {
+    renderSubitemsQuestion(qcm, qcmDiv);
+  } else {
+    renderClassicQuestion(qcm, qcmDiv);
+  }
 
   if (qcm.images && qcm.images.length > 0) {
     const imagesDiv = document.createElement("div");
@@ -73,13 +54,97 @@ export function displayCurrentQCM(qcms, currentIndex, onValidate) {
   validateButton.textContent = "Valider";
   validateButton.className = "validate-button";
   validateButton.addEventListener("click", () => {
-    const selectedAnswers = Array.from(
-      answersDiv.querySelectorAll('input[type="checkbox"]:checked')
-    ).map((input) => input.value);
+    const checkedInputs = qcmDiv.querySelectorAll('input[type="checkbox"]:checked');
+    const selectedAnswers = Array.from(checkedInputs).map((input) => ({
+      value: input.value,
+      subitemIndex: input.dataset.subitemIndex || null,
+      answerIndex: input.dataset.answerIndex || null
+    }));
 
     onValidate(selectedAnswers);
   });
 
   qcmDiv.appendChild(validateButton);
   output.appendChild(qcmDiv);
+}
+
+function renderClassicQuestion(qcm, container) {
+  const answersDiv = document.createElement("div");
+  answersDiv.className = "answers";
+
+  qcm.answers.forEach((answer, index) => {
+    const label = document.createElement("label");
+    label.className = "answer-item";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = answer.letter;
+    checkbox.dataset.answerIndex = index;
+
+    const text = document.createElement("span");
+    text.textContent = `${answer.letter}. ${answer.text}`;
+
+    label.appendChild(checkbox);
+    label.appendChild(text);
+    answersDiv.appendChild(label);
+  });
+
+  container.appendChild(answersDiv);
+}
+
+function renderSubitemsQuestion(qcm, container) {
+  const pairList = document.createElement("div");
+  pairList.className = "subitems-answers-list";
+
+  const maxLength = Math.max(qcm.subitems.length, qcm.answers.length);
+
+  for (let i = 0; i < maxLength; i++) {
+    const subitem = qcm.subitems[i];
+    const answer = qcm.answers[i];
+
+    const row = document.createElement("label");
+    row.className = "subitem-answer-row";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = answer ? answer.letter : "";
+    checkbox.dataset.subitemIndex = i;
+    checkbox.dataset.answerIndex = i;
+
+    const subitemDiv = document.createElement("div");
+    subitemDiv.className = "subitem-col";
+    subitemDiv.textContent = formatSubitem(subitem, i);
+
+    const answerDiv = document.createElement("div");
+    answerDiv.className = "answer-col";
+    answerDiv.textContent = answer
+      ? `${answer.letter}. ${answer.text}`
+      : "(réponse absente)";
+
+    row.appendChild(checkbox);
+    row.appendChild(subitemDiv);
+    row.appendChild(answerDiv);
+
+    pairList.appendChild(row);
+  }
+
+  container.appendChild(pairList);
+}
+
+function formatSubitem(subitem, index) {
+  if (!subitem) {
+    return `(subitem ${index + 1} absent)`;
+  }
+
+  if (typeof subitem === "string") {
+    return subitem;
+  }
+
+  if (typeof subitem === "object") {
+    if (subitem.text) return subitem.text;
+    if (subitem.label && subitem.text) return `${subitem.label}. ${subitem.text}`;
+    if (subitem.label) return subitem.label;
+  }
+
+  return String(subitem);
 }

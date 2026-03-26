@@ -57,3 +57,52 @@ body {
   cursor: pointer;
   font-size: 16px;
 }
+
+.answer-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.answer-item input {
+  margin-top: 3px;
+}
+
+.validate-button {
+  margin-top: 20px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.subitems-answers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.subitem-answer-row {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.subitem-answer-row input {
+  margin-top: 4px;
+}
+
+.subitem-col {
+  font-weight: bold;
+}
+
+.answer-col {
+  line-height: 1.4;
+}

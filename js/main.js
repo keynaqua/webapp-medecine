@@ -42,7 +42,7 @@ async function handleFile(event) {
     userAnswers = [];
 
     document.getElementById("uploadSection").style.display = "none";
-    status.textContent = "PDF parsé avec succès.";
+    status.textContent = "";
 
     renderQuestion();
   } catch (error) {
