@@ -31,6 +31,8 @@ async function handleFile(event) {
 
     const data = JSON.parse(text);
 
+	console.log(text);
+
     displayQCMs(data.qcms);
     status.textContent = "PDF parsé avec succès.";
   } catch (error) {
