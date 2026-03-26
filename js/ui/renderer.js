@@ -1,9 +1,9 @@
-import { clearElement } from "../utils/clearElement.js";
-import { renderSimpleQuestion } from "../components/renderSimpleQuestion.js";
-import { renderTextAssociationQuestion } from "../components/renderTextAssociationQuestion.js";
-import { renderImageAssociationQuestion } from "../components/renderImageAssociationQuestion.js";
-import { renderValidateButton } from "../components/renderValidateButton.js";
-import { renderEndScreenComponent } from "../components/renderEndScreen.js";
+import { clearElement } from "./utils/clearElement.js";
+import { renderSimpleQuestion } from "./components/renderSimpleQuestion.js";
+import { renderTextAssociationQuestion } from "./components/renderTextAssociationQuestion.js";
+import { renderImageAssociationQuestion } from "./components/renderImageAssociationQuestion.js";
+import { renderValidateButton } from "./components/renderValidateButton.js";
+import { renderEndScreenComponent } from "./components/renderEndScreen.js";
 
 const output = document.getElementById("output");
 
