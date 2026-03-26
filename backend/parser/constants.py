@@ -11,3 +11,15 @@ ANSWER_START_RE = re.compile(
     r"^\s*([A-E])[\.\)]\s*(.*)$",
     re.IGNORECASE
 )
+
+ITEM_START_RE = re.compile(
+    r"^\s*([A-E]|\d+)[\.\)]\s*(.*)$",
+    re.IGNORECASE
+)
+
+ASSOCIATION_HINT_RE = re.compile(
+    r"(question\s+d[’']association|associez)",
+    re.IGNORECASE
+)
+
+IMAGE_LABEL_RE = re.compile(r"^[A-E]$", re.IGNORECASE)

@@ -1,17 +1,20 @@
-from .constants import QUESTION_BLOCK_RE, ANSWER_START_RE
-from .utils import normalize_spaces, clean_multiline_text
+from .constants import QUESTION_BLOCK_RE, ITEM_START_RE, ASSOCIATION_HINT_RE
+from .utils import (
+    normalize_spaces,
+    clean_multiline_text,
+    remove_trailing_image_labels,
+    split_dash_items,
+)
 import re
-
-ITEM_START_RE = re.compile(r"^\s*([A-Z]|\d+)\.\s*(.*)")
 
 HEADER_PATTERNS = [
     r"Tutorat d[’']Années Supérieures Médecine Bordeaux",
 ]
 
 FOOTER_PATTERNS = [
-    r"^\s*\d+\s*$",          # 2
-    r"^\s*\d+/\d+\s*$",      # 11/43
-    r"^\s*\(\d+/\d+\)\s*$",  # (11/43)
+    r"^\s*\d+\s*$",
+    r"^\s*\d+/\d+\s*$",
+    r"^\s*\(\d+/\d+\)\s*$",
 ]
 
 
@@ -25,16 +28,12 @@ def clean_page_text(text):
             cleaned.append("")
             continue
 
-        # Header connu
         if any(re.search(pattern, line, re.IGNORECASE) for pattern in HEADER_PATTERNS):
             continue
 
-        # Footer type "2", "11/43", "(11/43)"
         if any(re.match(pattern, line) for pattern in FOOTER_PATTERNS):
             continue
 
-        # Cas collé dans une ligne :
-        # "E. ... 2 Tutorat d’Années Supérieures Médecine Bordeaux F. ..."
         line = re.sub(
             r"\s+\d+\s+Tutorat d[’']Années Supérieures Médecine Bordeaux\s+",
             " ",
@@ -42,7 +41,6 @@ def clean_page_text(text):
             flags=re.IGNORECASE
         )
 
-        # Cas collé avec page/maxpage
         line = re.sub(
             r"\s+\(?\d+/\d+\)?\s+Tutorat d[’']Années Supérieures Médecine Bordeaux\s+",
             " ",
@@ -68,6 +66,43 @@ def extract_full_text(doc):
     return "\n".join(pages_text)
 
 
+def _flush_current_item(current_item, current_type, answers, propositions):
+    if not current_item:
+        return
+
+    current_item["text"] = normalize_spaces(current_item["text"])
+    if current_type == "answer":
+        answers.append(current_item)
+    elif current_type == "proposition":
+        propositions.append(current_item)
+
+
+def _parse_question_core(question_lines):
+    question_text = normalize_spaces(" ".join(question_lines))
+    question_text = remove_trailing_image_labels(question_text)
+
+    prompt = None
+    prompt_items = []
+
+    if ":" in question_text:
+        left, right = question_text.split(":", 1)
+        if ASSOCIATION_HINT_RE.search(left):
+            prompt = normalize_spaces(left)
+            prompt_items = split_dash_items(right)
+
+    return question_text, prompt, prompt_items
+
+
+def _infer_type(answers, propositions, prompt_items):
+    if answers and propositions:
+        return "text_association"
+    if answers:
+        return "simple"
+    if prompt_items:
+        return "image_association"
+    return "simple"
+
+
 def parse_qcm_block(number, raw_content):
     content = clean_multiline_text(raw_content)
     if not content:
@@ -77,7 +112,7 @@ def parse_qcm_block(number, raw_content):
 
     question_lines = []
     answers = []
-    subitems = []
+    propositions = []
     current_item = None
     current_type = None
 
@@ -86,60 +121,65 @@ def parse_qcm_block(number, raw_content):
         if not line:
             continue
 
-        match = re.match(r"^\s*([A-Z]|\d+)\.\s*(.*)", line)
+        match = ITEM_START_RE.match(line)
 
         if match:
-            marker = match.group(1)
+            marker = match.group(1).upper()
             text = match.group(2).strip()
 
-            if current_item:
-                current_item["text"] = normalize_spaces(current_item["text"])
-                if current_type == "answer":
-                    answers.append(current_item)
-                else:
-                    subitems.append(current_item)
+            _flush_current_item(current_item, current_type, answers, propositions)
 
             if marker.isdigit():
-                current_type = "subitem"
+                current_type = "proposition"
                 current_item = {
                     "number": int(marker),
                     "text": text
                 }
-            else:
+            elif marker in {"A", "B", "C", "D", "E"}:
                 current_type = "answer"
                 current_item = {
-                    "letter": marker.upper(),
+                    "letter": marker,
                     "text": text
                 }
+            else:
+                current_type = None
+                current_item = None
         else:
             if current_item:
                 current_item["text"] += " " + line
             else:
                 question_lines.append(line)
 
-    if current_item:
-        current_item["text"] = normalize_spaces(current_item["text"])
-        if current_type == "answer":
-            answers.append(current_item)
-        else:
-            subitems.append(current_item)
+    _flush_current_item(current_item, current_type, answers, propositions)
 
-    question_text = normalize_spaces(" ".join(question_lines))
+    question_text, prompt, prompt_items = _parse_question_core(question_lines)
 
     if re.search(r"non\s+report[ée]?", question_text, re.IGNORECASE):
         return None
 
+    qcm_type = _infer_type(answers, propositions, prompt_items)
+
     result = {
         "number": int(number),
-        "question": question_text,
-        "answers": answers,
-        "images": []
+        "type": qcm_type,
+        "question": prompt if qcm_type == "image_association" and prompt else question_text,
     }
 
-    if subitems:
-        result["subitems"] = subitems
+    if qcm_type == "simple":
+        result["choices"] = answers
+        result["images"] = []
+    elif qcm_type == "text_association":
+        result["choices"] = answers
+        result["propositions"] = propositions
+    elif qcm_type == "image_association":
+        result["prompt_items"] = [
+            {"index": index + 1, "text": text}
+            for index, text in enumerate(prompt_items)
+        ]
+        result["targets"] = []
 
     return result
+
 
 def extract_qcms_from_text(doc):
     full_text = extract_full_text(doc)

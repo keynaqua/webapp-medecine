@@ -43,14 +43,10 @@ async def parse_pdf(request: Request, pdf: UploadFile = File(...)):
 
     try:
         qcms = extract_qcms_from_text(doc)
-
         anchors = extract_question_anchors(doc)
         images = extract_all_images(doc, base_url, UPLOAD_DIR)
-
         qcms = attach_images_to_questions(qcms, anchors, images, len(doc))
-
         return {"qcms": qcms}
-
     finally:
         doc.close()
         os.remove(tmp_path)
