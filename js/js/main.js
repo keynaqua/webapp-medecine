@@ -9,10 +9,10 @@ let qcms = [];
 let currentIndex = 0;
 let userAnswers = [];
 
-input.addEventListener("change", handleFile);
+input.addEventListener("change", handleFileUpload);
 
-async function handleFile(event) {
-  const file = event.target.files[0];
+async function handleFileUpload(event) {
+  const file = event.target.files?.[0];
   if (!file) return;
 
   status.textContent = "Parsing du PDF en cours...";
@@ -23,21 +23,18 @@ async function handleFile(event) {
   try {
     const response = await fetch(API_URL, {
       method: "POST",
-      body: formData
+      body: formData,
     });
 
-    const text = await response.text();
+    const rawText = await response.text();
 
     if (!response.ok) {
-      throw new Error(`Erreur HTTP ${response.status}: ${text}`);
+      throw new Error(`Erreur HTTP ${response.status}: ${rawText}`);
     }
 
-    const data = JSON.parse(text);
+    const data = JSON.parse(rawText);
 
-	console.log(text);
-	console.log(data);
-
-    qcms = data.qcms || [];
+    qcms = Array.isArray(data.qcms) ? data.qcms : [];
     currentIndex = 0;
     userAnswers = [];
 
@@ -53,24 +50,25 @@ async function handleFile(event) {
 
 function showCurrentQuestion() {
   if (currentIndex >= qcms.length) {
-    renderEndScreen();
+    renderEndScreen(userAnswers, qcms);
     return;
   }
 
-  renderQuestionScreen(
-    qcms[currentIndex],
+  renderQuestionScreen({
+    qcm: qcms[currentIndex],
     currentIndex,
-    qcms.length,
-    handleValidate
-  );
+    totalQuestions: qcms.length,
+    onValidate: handleValidate,
+  });
 }
 
 function handleValidate(selection) {
   userAnswers.push({
     questionNumber: qcms[currentIndex].number,
-    selection: selection
+    type: qcms[currentIndex].type,
+    selection,
   });
 
-  currentIndex++;
+  currentIndex += 1;
   showCurrentQuestion();
 }

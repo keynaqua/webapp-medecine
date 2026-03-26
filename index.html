@@ -2,18 +2,24 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>QCM Reader</title>
   <link rel="stylesheet" href="./assets/style.css" />
 </head>
 <body>
-  <h1>QCM Reader</h1>
+  <main class="app-shell">
+    <header class="page-header">
+      <h1>QCM Reader</h1>
+      <p class="page-subtitle">Upload un PDF et réponds question par question.</p>
+    </header>
 
-  <div id="uploadSection">
-    <input type="file" id="pdfInput" accept="application/pdf" />
-  </div>
+    <section class="upload-card" id="uploadSection">
+      <input type="file" id="pdfInput" accept="application/pdf" />
+      <div id="status" class="status"></div>
+    </section>
 
-  <div id="status"></div>
-  <div id="output"></div>
+    <section id="output"></section>
+  </main>
 
   <script type="module" src="./js/main.js"></script>
 </body>
