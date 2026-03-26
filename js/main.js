@@ -1,4 +1,4 @@
-import { displayCurrentQCM } from "./ui/renderer.js";
+import { renderQuestionScreen, renderEndScreen } from "./ui/renderer.js";
 
 const input = document.getElementById("pdfInput");
 const status = document.getElementById("status");
@@ -29,38 +29,45 @@ async function handleFile(event) {
     const text = await response.text();
 
     if (!response.ok) {
-      console.error("Réponse backend :", text);
-      throw new Error(`Erreur HTTP ${response.status}`);
+      throw new Error(`Erreur HTTP ${response.status}: ${text}`);
     }
 
     const data = JSON.parse(text);
-
-    console.log(data);
 
     qcms = data.qcms || [];
     currentIndex = 0;
     userAnswers = [];
 
-    document.getElementById("uploadSection").style.display = "none";
-    status.textContent = "";
+    input.style.display = "none";
+    status.textContent = "PDF parsé avec succès.";
 
-    renderQuestion();
+    showCurrentQuestion();
   } catch (error) {
     console.error(error);
     status.textContent = "Erreur pendant le parsing du PDF.";
   }
 }
 
-function renderQuestion() {
-  displayCurrentQCM(qcms, currentIndex, handleValidate);
+function showCurrentQuestion() {
+  if (currentIndex >= qcms.length) {
+    renderEndScreen();
+    return;
+  }
+
+  renderQuestionScreen(
+    qcms[currentIndex],
+    currentIndex,
+    qcms.length,
+    handleValidate
+  );
 }
 
-function handleValidate(selectedAnswers) {
+function handleValidate(selection) {
   userAnswers.push({
     questionNumber: qcms[currentIndex].number,
-    selectedAnswers
+    selection: selection
   });
 
   currentIndex++;
-  renderQuestion();
+  showCurrentQuestion();
 }
