@@ -34,6 +34,9 @@ async function handleFile(event) {
 
     const data = JSON.parse(text);
 
+	console.log(text);
+	console.log(data);
+
     qcms = data.qcms || [];
     currentIndex = 0;
     userAnswers = [];
