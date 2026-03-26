@@ -37,3 +37,23 @@ body {
   border-radius: 8px;
   border: 1px solid #ddd;
 }
+
+.answer-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.answer-item input {
+  margin-top: 3px;
+}
+
+.validate-button {
+  margin-top: 20px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+}
