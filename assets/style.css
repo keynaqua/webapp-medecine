@@ -106,3 +106,50 @@ body {
 .answer-col {
   line-height: 1.4;
 }
+
+.answer-item,
+.list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.answer-item input,
+.list-item input {
+  margin-top: 3px;
+}
+
+.validate-button {
+  margin-top: 20px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.dual-list-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.dual-list-column {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.dual-list-column h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.answers-list,
+.subitems-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

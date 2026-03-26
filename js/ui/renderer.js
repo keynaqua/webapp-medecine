@@ -30,7 +30,7 @@ export function displayCurrentQCM(qcms, currentIndex, onValidate) {
     qcm.subitems.length > 0;
 
   if (hasSubitems) {
-    renderSubitemsQuestion(qcm, qcmDiv);
+    renderQuestionWithSubitems(qcm, qcmDiv);
   } else {
     renderClassicQuestion(qcm, qcmDiv);
   }
@@ -53,15 +53,26 @@ export function displayCurrentQCM(qcms, currentIndex, onValidate) {
   const validateButton = document.createElement("button");
   validateButton.textContent = "Valider";
   validateButton.className = "validate-button";
+
   validateButton.addEventListener("click", () => {
-    const checkedInputs = qcmDiv.querySelectorAll('input[type="checkbox"]:checked');
-    const selectedAnswers = Array.from(checkedInputs).map((input) => ({
-      value: input.value,
-      subitemIndex: input.dataset.subitemIndex || null,
-      answerIndex: input.dataset.answerIndex || null
+    const selectedAnswers = Array.from(
+      qcmDiv.querySelectorAll('input[data-type="answer"]:checked')
+    ).map((input) => ({
+      index: Number(input.dataset.index),
+      value: input.value
     }));
 
-    onValidate(selectedAnswers);
+    const selectedSubitems = Array.from(
+      qcmDiv.querySelectorAll('input[data-type="subitem"]:checked')
+    ).map((input) => ({
+      index: Number(input.dataset.index),
+      value: input.value
+    }));
+
+    onValidate({
+      selectedAnswers,
+      selectedSubitems
+    });
   });
 
   qcmDiv.appendChild(validateButton);
@@ -79,7 +90,8 @@ function renderClassicQuestion(qcm, container) {
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.value = answer.letter;
-    checkbox.dataset.answerIndex = index;
+    checkbox.dataset.type = "answer";
+    checkbox.dataset.index = index;
 
     const text = document.createElement("span");
     text.textContent = `${answer.letter}. ${answer.text}`;
@@ -92,48 +104,79 @@ function renderClassicQuestion(qcm, container) {
   container.appendChild(answersDiv);
 }
 
-function renderSubitemsQuestion(qcm, container) {
-  const pairList = document.createElement("div");
-  pairList.className = "subitems-answers-list";
+function renderQuestionWithSubitems(qcm, container) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "dual-list-wrapper";
 
-  const maxLength = Math.max(qcm.subitems.length, qcm.answers.length);
+  const answersColumn = document.createElement("div");
+  answersColumn.className = "dual-list-column";
 
-  for (let i = 0; i < maxLength; i++) {
-    const subitem = qcm.subitems[i];
-    const answer = qcm.answers[i];
+  const answersTitle = document.createElement("h3");
+  answersTitle.textContent = "Réponses";
+  answersColumn.appendChild(answersTitle);
 
-    const row = document.createElement("label");
-    row.className = "subitem-answer-row";
+  const answersList = document.createElement("div");
+  answersList.className = "answers-list";
+
+  qcm.answers.forEach((answer, index) => {
+    const label = document.createElement("label");
+    label.className = "list-item";
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
-    checkbox.value = answer ? answer.letter : "";
-    checkbox.dataset.subitemIndex = i;
-    checkbox.dataset.answerIndex = i;
+    checkbox.value = answer.letter;
+    checkbox.dataset.type = "answer";
+    checkbox.dataset.index = index;
 
-    const subitemDiv = document.createElement("div");
-    subitemDiv.className = "subitem-col";
-    subitemDiv.textContent = formatSubitem(subitem, i);
+    const text = document.createElement("span");
+    text.textContent = `${answer.letter}. ${answer.text}`;
 
-    const answerDiv = document.createElement("div");
-    answerDiv.className = "answer-col";
-    answerDiv.textContent = answer
-      ? `${answer.letter}. ${answer.text}`
-      : "(réponse absente)";
+    label.appendChild(checkbox);
+    label.appendChild(text);
+    answersList.appendChild(label);
+  });
 
-    row.appendChild(checkbox);
-    row.appendChild(subitemDiv);
-    row.appendChild(answerDiv);
+  answersColumn.appendChild(answersList);
 
-    pairList.appendChild(row);
-  }
+  const subitemsColumn = document.createElement("div");
+  subitemsColumn.className = "dual-list-column";
 
-  container.appendChild(pairList);
+  const subitemsTitle = document.createElement("h3");
+  subitemsTitle.textContent = "Subitems";
+  subitemsColumn.appendChild(subitemsTitle);
+
+  const subitemsList = document.createElement("div");
+  subitemsList.className = "subitems-list";
+
+  qcm.subitems.forEach((subitem, index) => {
+    const label = document.createElement("label");
+    label.className = "list-item";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = index;
+    checkbox.dataset.type = "subitem";
+    checkbox.dataset.index = index;
+
+    const text = document.createElement("span");
+    text.textContent = formatSubitem(subitem, index);
+
+    label.appendChild(checkbox);
+    label.appendChild(text);
+    subitemsList.appendChild(label);
+  });
+
+  subitemsColumn.appendChild(subitemsList);
+
+  wrapper.appendChild(answersColumn);
+  wrapper.appendChild(subitemsColumn);
+
+  container.appendChild(wrapper);
 }
 
 function formatSubitem(subitem, index) {
   if (!subitem) {
-    return `(subitem ${index + 1} absent)`;
+    return `Subitem ${index + 1}`;
   }
 
   if (typeof subitem === "string") {
@@ -141,9 +184,15 @@ function formatSubitem(subitem, index) {
   }
 
   if (typeof subitem === "object") {
-    if (subitem.text) return subitem.text;
-    if (subitem.label && subitem.text) return `${subitem.label}. ${subitem.text}`;
-    if (subitem.label) return subitem.label;
+    if (subitem.label && subitem.text) {
+      return `${subitem.label}. ${subitem.text}`;
+    }
+    if (subitem.text) {
+      return subitem.text;
+    }
+    if (subitem.label) {
+      return subitem.label;
+    }
   }
 
   return String(subitem);
