@@ -34,14 +34,14 @@ async function handleFileUpload(event) {
 
     const data = JSON.parse(rawText);
 
-	console.log(data);
+    console.log("Réponse API :", data);
 
     qcms = Array.isArray(data.qcms) ? data.qcms : [];
     currentIndex = 0;
     userAnswers = [];
 
     input.style.display = "none";
-    status.textContent = "PDF parsé avec succès.";
+    status.textContent = "";
 
     showCurrentQuestion();
   } catch (error) {

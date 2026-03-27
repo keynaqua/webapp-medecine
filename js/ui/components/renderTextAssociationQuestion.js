@@ -1,29 +1,25 @@
 import {
   getChoices,
   getPropositions,
-  buildLetterOptions,
+  buildNumericOptionsFromLength,
 } from "../utils/questionHelpers.js";
 
-function createChoiceLegend(choices) {
-  const legend = document.createElement("div");
-  legend.className = "association-legend";
+function createDefinitionBox(choice) {
+  const item = document.createElement("div");
+  item.className = "definition-card";
 
-  const title = document.createElement("h3");
-  title.textContent = "Réponses disponibles";
-  legend.appendChild(title);
+  const letter = document.createElement("div");
+  letter.className = "definition-letter";
+  letter.textContent = choice.letter;
 
-  const list = document.createElement("div");
-  list.className = "legend-list";
+  const text = document.createElement("div");
+  text.className = "definition-text";
+  text.textContent = choice.text || "";
 
-  choices.forEach((choice) => {
-    const item = document.createElement("div");
-    item.className = "legend-item";
-    item.innerHTML = `<strong>${choice.letter}.</strong> ${choice.text}`;
-    list.appendChild(item);
-  });
+  item.appendChild(letter);
+  item.appendChild(text);
 
-  legend.appendChild(list);
-  return legend;
+  return item;
 }
 
 function createAssociationSelect(options) {
@@ -36,10 +32,10 @@ function createAssociationSelect(options) {
   emptyOption.textContent = "Choisir";
   select.appendChild(emptyOption);
 
-  options.forEach((letter) => {
+  options.forEach((value) => {
     const option = document.createElement("option");
-    option.value = letter;
-    option.textContent = letter;
+    option.value = value;
+    option.textContent = value;
     select.appendChild(option);
   });
 
@@ -48,20 +44,36 @@ function createAssociationSelect(options) {
 
 export function renderTextAssociationQuestion(qcm) {
   const wrapper = document.createElement("div");
-  wrapper.className = "association-layout";
+  wrapper.className = "text-association-layout";
 
   const choices = getChoices(qcm);
   const propositions = getPropositions(qcm);
-  const letters = buildLetterOptions(choices);
+  const numericOptions = buildNumericOptionsFromLength(propositions.length);
 
-  wrapper.appendChild(createChoiceLegend(choices));
+  const leftColumn = document.createElement("section");
+  leftColumn.className = "text-association-left";
 
-  const panel = document.createElement("div");
-  panel.className = "association-panel";
+  const leftTitle = document.createElement("h3");
+  leftTitle.className = "section-title";
+  leftTitle.textContent = "Propositions";
+  leftColumn.appendChild(leftTitle);
 
-  const title = document.createElement("h3");
-  title.textContent = "Associe chaque proposition à une lettre";
-  panel.appendChild(title);
+  const definitionsList = document.createElement("div");
+  definitionsList.className = "definition-list";
+
+  choices.forEach((choice) => {
+    definitionsList.appendChild(createDefinitionBox(choice));
+  });
+
+  leftColumn.appendChild(definitionsList);
+
+  const rightColumn = document.createElement("section");
+  rightColumn.className = "text-association-right";
+
+  const rightTitle = document.createElement("h3");
+  rightTitle.className = "section-title";
+  rightTitle.textContent = "Associe chaque lettre à la bonne définition";
+  rightColumn.appendChild(rightTitle);
 
   const rows = document.createElement("div");
   rows.className = "association-rows";
@@ -74,18 +86,21 @@ export function renderTextAssociationQuestion(qcm) {
 
     const left = document.createElement("div");
     left.className = "association-left";
-    left.innerHTML = `<strong>${proposition.number}.</strong> ${proposition.text}`;
+    left.innerHTML = `<strong>${proposition.number}.</strong> ${proposition.text || ""}`;
 
     const right = document.createElement("div");
     right.className = "association-right";
-    right.appendChild(createAssociationSelect(letters));
+    right.appendChild(createAssociationSelect(numericOptions));
 
     row.appendChild(left);
     row.appendChild(right);
     rows.appendChild(row);
   });
 
-  panel.appendChild(rows);
-  wrapper.appendChild(panel);
+  rightColumn.appendChild(rows);
+
+  wrapper.appendChild(leftColumn);
+  wrapper.appendChild(rightColumn);
+
   return wrapper;
 }

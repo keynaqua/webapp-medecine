@@ -1,74 +1,89 @@
-import { getChoices } from "../utils/questionHelpers.js";
+import {
+  getChoices,
+  getImages,
+  getImageLabel,
+  getImageUrl,
+} from "../utils/questionHelpers.js";
 
-export function renderSimpleQuestion(container, qcm, onAnswer) {
-    container.innerHTML = "";
+function createQuestionImages(images) {
+  if (!images.length) return null;
 
-    const title = document.createElement("h2");
-    title.textContent = `Question ${qcm.number}`;
-    container.appendChild(title);
+  const section = document.createElement("section");
+  section.className = "question-images-section";
 
-    const question = document.createElement("p");
-    question.textContent = qcm.question;
-    container.appendChild(question);
+  const grid = document.createElement("div");
+  grid.className = "question-images-grid";
 
-    // ✅ AJOUT : affichage des images
-    if (qcm.images && qcm.images.length > 0) {
-        const imagesContainer = document.createElement("div");
-        imagesContainer.className = "question-images";
+  images.forEach((image, index) => {
+    const url = getImageUrl(image);
+    if (!url) return;
 
-        qcm.images.forEach((imgObj) => {
-            const wrapper = document.createElement("div");
-            wrapper.className = "question-image-wrapper";
+    const figure = document.createElement("figure");
+    figure.className = "question-image-card";
 
-            const img = document.createElement("img");
-            img.src = imgObj.url || imgObj.image;
-            img.alt = imgObj.label || "image question";
+    const img = document.createElement("img");
+    img.className = "question-image-preview";
+    img.src = url;
+    img.alt = getImageLabel(image, index);
+    img.loading = "lazy";
 
-            wrapper.appendChild(img);
+    const caption = document.createElement("figcaption");
+    caption.className = "question-image-caption";
+    caption.textContent = getImageLabel(image, index);
 
-            if (imgObj.label) {
-                const label = document.createElement("p");
-                label.className = "image-label";
-                label.textContent = imgObj.label;
-                wrapper.appendChild(label);
-            }
+    figure.appendChild(img);
+    figure.appendChild(caption);
+    grid.appendChild(figure);
+  });
 
-            imagesContainer.appendChild(wrapper);
-        });
+  if (!grid.childElementCount) return null;
 
-        container.appendChild(imagesContainer);
-    }
+  section.appendChild(grid);
+  return section;
+}
 
-    // Choix
-    const form = document.createElement("form");
+export function renderSimpleQuestion(qcm) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "simple-question";
 
-    qcm.choices.forEach((choice, index) => {
-        const label = document.createElement("label");
-        label.className = "choice";
+  const images = getImages(qcm);
+  const imagesSection = createQuestionImages(images);
 
-        const input = document.createElement("input");
-        input.type = "checkbox";
-        input.name = "answer";
-        input.value = choice.letter;
+  if (imagesSection) {
+    wrapper.appendChild(imagesSection);
+  }
 
-        label.appendChild(input);
-        label.append(` ${choice.letter}. ${choice.text}`);
+  const list = document.createElement("div");
+  list.className = "choice-list";
 
-        form.appendChild(label);
-    });
+  getChoices(qcm).forEach((choice) => {
+    const label = document.createElement("label");
+    label.className = "choice-card";
 
-    container.appendChild(form);
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = choice.letter;
+    checkbox.dataset.role = "simple-choice";
 
-    const button = document.createElement("button");
-    button.textContent = "Valider";
+    const content = document.createElement("div");
+    content.className = "choice-card-content";
 
-    button.onclick = () => {
-        const selected = Array.from(
-            form.querySelectorAll("input:checked")
-        ).map((input) => input.value);
+    const letter = document.createElement("span");
+    letter.className = "choice-letter";
+    letter.textContent = choice.letter;
 
-        onAnswer(selected);
-    };
+    const text = document.createElement("span");
+    text.className = "choice-text";
+    text.textContent = choice.text || "";
 
-    container.appendChild(button);
+    content.appendChild(letter);
+    content.appendChild(text);
+    label.appendChild(checkbox);
+    label.appendChild(content);
+    list.appendChild(label);
+  });
+
+  wrapper.appendChild(list);
+
+  return wrapper;
 }

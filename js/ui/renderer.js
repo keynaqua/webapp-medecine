@@ -13,17 +13,12 @@ function createQuestionCard(qcm, currentIndex, totalQuestions) {
 
   const title = document.createElement("h2");
   title.className = "qcm-title";
-  title.textContent = `QCM ${qcm.number} (${currentIndex + 1}/${totalQuestions})`;
+  title.textContent = `QCM ${qcm.number} — ${currentIndex + 1}/${totalQuestions}`;
   container.appendChild(title);
-
-  const typeBadge = document.createElement("span");
-  typeBadge.className = "question-type-badge";
-  typeBadge.textContent = qcm.type;
-  container.appendChild(typeBadge);
 
   const question = document.createElement("p");
   question.className = "question";
-  question.textContent = qcm.question;
+  question.textContent = qcm.question || "";
   container.appendChild(question);
 
   return container;
@@ -33,8 +28,10 @@ function renderQuestionContent(qcm) {
   switch (qcm.type) {
     case "text_association":
       return renderTextAssociationQuestion(qcm);
+
     case "image_association":
       return renderImageAssociationQuestion(qcm);
+
     case "simple":
     default:
       return renderSimpleQuestion(qcm);
@@ -45,9 +42,11 @@ export function renderQuestionScreen({ qcm, currentIndex, totalQuestions, onVali
   clearElement(output);
 
   const container = createQuestionCard(qcm, currentIndex, totalQuestions);
-  container.appendChild(renderQuestionContent(qcm));
-  container.appendChild(renderValidateButton({ container, qcm, onValidate }));
+  const content = renderQuestionContent(qcm);
+  const button = renderValidateButton({ container, qcm, onValidate });
 
+  container.appendChild(content);
+  container.appendChild(button);
   output.appendChild(container);
 }
 
