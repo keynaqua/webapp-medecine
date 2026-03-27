@@ -30,6 +30,16 @@ app.add_middleware(
 )
 
 
+@app.get("/")
+async def root():
+    return {"status": "ok", "message": "Backend is running"}
+
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
+
+
 @app.post("/api/parse-pdf")
 async def parse_pdf(request: Request, pdf: UploadFile = File(...)):
     tmp_filename = f"{uuid.uuid4().hex}_{pdf.filename}"
@@ -49,4 +59,5 @@ async def parse_pdf(request: Request, pdf: UploadFile = File(...)):
         return {"qcms": qcms}
     finally:
         doc.close()
-        os.remove(tmp_path)
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
