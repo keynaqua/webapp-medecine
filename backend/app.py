@@ -5,6 +5,7 @@ import fitz
 from fastapi import FastAPI, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import Response
 
 from parser.text_parser import extract_qcms_from_text
 from parser.image_parser import extract_all_images, extract_question_anchors
@@ -29,16 +30,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
     return {"status": "ok", "message": "Backend is running"}
 
-
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
     return {"status": "healthy"}
-
 
 @app.post("/api/parse-pdf")
 async def parse_pdf(request: Request, pdf: UploadFile = File(...)):
