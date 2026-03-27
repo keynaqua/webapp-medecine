@@ -34,6 +34,8 @@ async function handleFileUpload(event) {
 
     const data = JSON.parse(rawText);
 
+	console.log(data);
+
     qcms = Array.isArray(data.qcms) ? data.qcms : [];
     currentIndex = 0;
     userAnswers = [];
