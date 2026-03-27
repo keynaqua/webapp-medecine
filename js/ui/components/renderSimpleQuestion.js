@@ -1,44 +1,74 @@
 import { getChoices } from "../utils/questionHelpers.js";
 
-export function renderSimpleQuestion(qcm) {
-  const wrapper = document.createElement("div");
-  wrapper.className = "simple-question";
+export function renderSimpleQuestion(container, qcm, onAnswer) {
+    container.innerHTML = "";
 
-  const hint = document.createElement("p");
-  hint.className = "question-hint";
-  hint.textContent = "Sélectionne une ou plusieurs réponses.";
-  wrapper.appendChild(hint);
+    const title = document.createElement("h2");
+    title.textContent = `Question ${qcm.number}`;
+    container.appendChild(title);
 
-  const list = document.createElement("div");
-  list.className = "choice-list";
+    const question = document.createElement("p");
+    question.textContent = qcm.question;
+    container.appendChild(question);
 
-  getChoices(qcm).forEach((choice) => {
-    const label = document.createElement("label");
-    label.className = "choice-card";
+    // ✅ AJOUT : affichage des images
+    if (qcm.images && qcm.images.length > 0) {
+        const imagesContainer = document.createElement("div");
+        imagesContainer.className = "question-images";
 
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.value = choice.letter;
-    checkbox.dataset.role = "simple-choice";
+        qcm.images.forEach((imgObj) => {
+            const wrapper = document.createElement("div");
+            wrapper.className = "question-image-wrapper";
 
-    const content = document.createElement("div");
-    content.className = "choice-card-content";
+            const img = document.createElement("img");
+            img.src = imgObj.url || imgObj.image;
+            img.alt = imgObj.label || "image question";
 
-    const letter = document.createElement("span");
-    letter.className = "choice-letter";
-    letter.textContent = choice.letter;
+            wrapper.appendChild(img);
 
-    const text = document.createElement("span");
-    text.className = "choice-text";
-    text.textContent = choice.text;
+            if (imgObj.label) {
+                const label = document.createElement("p");
+                label.className = "image-label";
+                label.textContent = imgObj.label;
+                wrapper.appendChild(label);
+            }
 
-    content.appendChild(letter);
-    content.appendChild(text);
-    label.appendChild(checkbox);
-    label.appendChild(content);
-    list.appendChild(label);
-  });
+            imagesContainer.appendChild(wrapper);
+        });
 
-  wrapper.appendChild(list);
-  return wrapper;
+        container.appendChild(imagesContainer);
+    }
+
+    // Choix
+    const form = document.createElement("form");
+
+    qcm.choices.forEach((choice, index) => {
+        const label = document.createElement("label");
+        label.className = "choice";
+
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.name = "answer";
+        input.value = choice.letter;
+
+        label.appendChild(input);
+        label.append(` ${choice.letter}. ${choice.text}`);
+
+        form.appendChild(label);
+    });
+
+    container.appendChild(form);
+
+    const button = document.createElement("button");
+    button.textContent = "Valider";
+
+    button.onclick = () => {
+        const selected = Array.from(
+            form.querySelectorAll("input:checked")
+        ).map((input) => input.value);
+
+        onAnswer(selected);
+    };
+
+    container.appendChild(button);
 }
